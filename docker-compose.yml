@@ -1,0 +1,72 @@
+version: '3'
+
+services:
+  crunchii_db:
+    image: postgres
+    volumes:
+      - pg_data_crunchii:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_USER: crunchii
+      POSTGRES_PASSWORD: crunchiiapp
+    ports:
+      - "5432:5432"
+
+  test_crunchii_db:
+    image: postgres
+    volumes:
+      - pg_data_test_crunchii:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_USER: crunchii
+      POSTGRES_PASSWORD: crunchiiapp
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./static:/static
+      - ./config/nginx:/etc/nginx/conf.d
+    ports:
+      - "80:8000"
+    depends_on:
+      - web
+
+  web:
+    restart: always
+    build: .
+    command: python /code/manage.py migrate --noinput
+    command: python /code/manage.py collectstatic --clear --noinput
+#    command: python /code/manage.py runserver 0.0.0.0:8000
+    command: /usr/local/bin/gunicorn recipe_backend.wsgi:application -w 2 -b :8000 --reload
+    volumes:
+      - .:/code
+    expose:
+      - "8000"
+    depends_on:
+      - crunchii_db
+    tty: true
+    stdin_open: true
+    environment:
+      DB_NAME: 'crunchii'
+      DB_HOST: 'crunchii_db'
+      DB_USER: 'crunchii'
+      DB_PASSWORD: 'crunchiiapp'
+
+  tests:
+    restart: "no"
+    build: .
+    volumes:
+      - .:/code
+    depends_on:
+      - test_crunchii_db
+    environment:
+      DJANGO_ENV: 'test'
+      DB_NAME: 'testcrunchii'
+      DB_HOST: 'test_crunchii_db'
+      DB_USER: 'testcrunchii'
+      DB_PASSWORD: 'crunchiiapp'
+    command: "true"
+
+volumes:
+  pg_data_crunchii: {}
+  pg_data_test_crunchii: {}
+
+
