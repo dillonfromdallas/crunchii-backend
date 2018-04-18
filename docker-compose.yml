@@ -24,8 +24,6 @@ services:
     volumes:
       - ./static:/static
       - ./config/nginx:/etc/nginx/conf.d
-    ports:
-      - "80:8000"
     depends_on:
       - web
 
@@ -34,12 +32,14 @@ services:
     build: .
     command: python /code/manage.py migrate --noinput
     command: python /code/manage.py collectstatic --clear --noinput
-#    command: python /code/manage.py runserver 0.0.0.0:8000
-    command: /usr/local/bin/gunicorn recipe_backend.wsgi:application -w 2 -b :8000 --reload
+    command: python /code/manage.py runserver 0.0.0.0:8000
+#    command: /usr/local/bin/gunicorn recipe_backend.wsgi:application -w 2 -b :8000 --reload
     volumes:
       - .:/code
     expose:
       - "8000"
+    ports:
+      - "8080:8000"
     depends_on:
       - crunchii_db
     tty: true
